@@ -1,0 +1,14 @@
+# Proxy SSH server
+proxyserver:
+  address: 192.168.0.1
+  port: 22
+  username: user
+  password: userpass
+
+# SSH server
+internalserver:
+  address: 192.168.1.1
+  port: 22
+
+# Port for localhost connection
+localport: 16822

@@ -1,61 +1,98 @@
 package main // import "tunnel"
 
 import (
+	_ "embed"
+
+	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/elliotchance/sshtunnel"
 	"golang.org/x/crypto/ssh"
+	"gopkg.in/yaml.v3"
 )
 
+//go:embed config.yaml
+var sampleYAML string
+
 type ProxyInfo struct {
-	Address  string
-	Port     string
-	Username string
-	Password string
+	Address  string `yaml:"address"`
+	Port     string `yaml:"port"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
 }
 
 type InternalServerInfo struct {
-	Address string
-	Port    string
+	Address string `yaml:"address"`
+	Port    string `yaml:"port"`
 }
 
 type Config struct {
-	Proxy          ProxyInfo
-	InternalServer InternalServerInfo
-	OutsidePort    string
+	Proxy          ProxyInfo          `yaml:"proxyserver"`
+	InternalServer InternalServerInfo `yaml:"internalserver"`
+	LocalPort      string             `yaml:"localport"`
+}
+
+func createYAML(iniPath string) {
+	if _, err := os.Stat(iniPath); !os.IsNotExist(err) {
+		fmt.Printf("File %s already exists.\n", iniPath)
+		os.Exit(1)
+	}
+
+	f, err := os.Create(iniPath)
+	if err != nil {
+		log.Fatalln("Create INI: ", err)
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(sampleYAML)
+	if err != nil {
+		log.Fatalln("Create INI: ", err)
+	}
+
+	fmt.Println(iniPath + " is created")
+	fmt.Println("Please modify " + iniPath + " then run again")
+
+	os.Exit(1)
 }
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatalln("Usage: tunnel config.yaml")
+		fmt.Println("Usage:")
+		fmt.Println("* Run:        tunnel ./config.yaml")
+		fmt.Println("* Get config: tunnel -getyaml")
+		os.Exit(1)
+	}
+
+	if os.Args[1] == "-getyaml" {
+		createYAML("config_sample.yaml")
 	}
 
 	configFile := os.Args[1]
 
-	log.Println(configFile)
-	return
+	data, err := os.ReadFile(configFile)
+	if err != nil {
+		fmt.Println("Error when " + configFile + " reading")
+		os.Exit(1)
+	}
 
-	config := Config{
-		ProxyInfo{"192.168.0.1", "22", "proxy_user_id", "proxy_user_password"},
-		InternalServerInfo{"192.168.1.2", "22"},
-		"1222",
+	var config Config
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		fmt.Println("Error when " + configFile + " parsing")
+		os.Exit(1)
 	}
 
 	proxyAddr := config.Proxy.Username + "@" + config.Proxy.Address + ":" + config.Proxy.Port
 	proxyPw := config.Proxy.Password
 	inAddr := config.InternalServer.Address + ":" + config.InternalServer.Port
 
-	tunnel, err := sshtunnel.NewSSHTunnel(proxyAddr, ssh.Password(proxyPw), inAddr, config.OutsidePort)
+	tunnel, err := sshtunnel.NewSSHTunnel(proxyAddr, ssh.Password(proxyPw), inAddr, config.LocalPort)
 	if err != nil {
-		log.Fatal(err)
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	tunnel.Log = log.New(os.Stdout, "", log.Ldate|log.Lmicroseconds)
-
-	go tunnel.Start()
-	for {
-		time.Sleep(100 * time.Second)
-	}
+	tunnel.Start()
 }
