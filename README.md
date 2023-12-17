@@ -4,9 +4,9 @@
 tunnel ./config.yaml
 ```
 
-## Connect
+## Connect Server via Proxy
 
 ```sh
 # ssh internal_server_user_id@localhost -p localport_in_yaml
-ssh root@192.168.0.1 -p 16822
+ssh root@192.168.1.1 -p 16822
 ```
