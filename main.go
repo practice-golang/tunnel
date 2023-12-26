@@ -3,6 +3,7 @@ package main // import "tunnel"
 import (
 	_ "embed"
 	"path/filepath"
+	"strings"
 
 	"fmt"
 	"log"
@@ -93,10 +94,11 @@ func main() {
 	if config.Proxy.PrivateKey != "" {
 		pemPath := config.Proxy.PrivateKey
 		if !filepath.IsAbs(pemPath) {
-			if pemPath[0] == '~' {
-				fmt.Println("Cannot parse home directory(~/...)")
-				os.Exit(1)
+			if strings.HasPrefix(pemPath, "~/") {
+				dirname, _ := os.UserHomeDir()
+				pemPath = filepath.Join(dirname, pemPath[2:])
 			}
+
 			pemPath, _ = filepath.Abs(pemPath)
 			fmt.Println("private key path:", pemPath)
 		}
