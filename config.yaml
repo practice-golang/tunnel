@@ -4,6 +4,8 @@ proxyserver:
   port: 22
   username: user
   password: userpass
+  # If privatekey is set, password will be ignored. This should be written as an absolute path.
+  # privatekey: /home/username/.ssh/mykey.pem
 
 # SSH server
 internalserver:

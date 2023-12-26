@@ -16,10 +16,11 @@ import (
 var sampleYAML string
 
 type ProxyInfo struct {
-	Address  string `yaml:"address"`
-	Port     string `yaml:"port"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
+	Address    string `yaml:"address"`
+	Port       string `yaml:"port"`
+	Username   string `yaml:"username"`
+	Password   string `yaml:"password"`
+	PrivateKey string `yaml:"privatekey"`
 }
 
 type InternalServerInfo struct {
@@ -87,7 +88,13 @@ func main() {
 	proxyPw := config.Proxy.Password
 	inAddr := config.InternalServer.Address + ":" + config.InternalServer.Port
 
-	tunnel, err := sshtunnel.NewSSHTunnel(proxyAddr, ssh.Password(proxyPw), inAddr, config.LocalPort)
+	authWay := ssh.Password(proxyPw)
+	if config.Proxy.PrivateKey != "" {
+		authWay = sshtunnel.PrivateKeyFile(config.Proxy.PrivateKey)
+		fmt.Println("Use private key instead password")
+	}
+
+	tunnel, err := sshtunnel.NewSSHTunnel(proxyAddr, authWay, inAddr, config.LocalPort)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
