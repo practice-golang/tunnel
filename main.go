@@ -94,7 +94,7 @@ func main() {
 	if config.Proxy.PrivateKey != "" {
 		pemPath := config.Proxy.PrivateKey
 		if !filepath.IsAbs(pemPath) {
-			if strings.HasPrefix(pemPath, "~/") {
+			if strings.HasPrefix(pemPath, "~/") || strings.HasPrefix(pemPath, "~\\") {
 				dirname, _ := os.UserHomeDir()
 				pemPath = filepath.Join(dirname, pemPath[2:])
 			}
