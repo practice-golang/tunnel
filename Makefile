@@ -1,6 +1,6 @@
 ifndef version
-	version = 0.0.4
-#	version = dev
+#	version = 0.0.4
+	version = dev
 endif
 
 build:
