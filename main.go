@@ -2,6 +2,7 @@ package main // import "tunnel"
 
 import (
 	_ "embed"
+	"path/filepath"
 
 	"fmt"
 	"log"
@@ -90,7 +91,17 @@ func main() {
 
 	authWay := ssh.Password(proxyPw)
 	if config.Proxy.PrivateKey != "" {
-		authWay = sshtunnel.PrivateKeyFile(config.Proxy.PrivateKey)
+		pemPath := config.Proxy.PrivateKey
+		if !filepath.IsAbs(pemPath) {
+			if pemPath[0] == '~' {
+				fmt.Println("Cannot parse home directory(~/...)")
+				os.Exit(1)
+			}
+			pemPath, _ = filepath.Abs(pemPath)
+			fmt.Println("private key path:", pemPath)
+		}
+
+		authWay = sshtunnel.PrivateKeyFile(pemPath)
 		fmt.Println("Use private key instead password")
 	}
 
