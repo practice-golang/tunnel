@@ -21,6 +21,7 @@ type ProxyInfo struct {
 	Address    string `yaml:"address"`
 	Port       string `yaml:"port"`
 	Username   string `yaml:"username"`
+	AuthMethod string `yaml:"authmethod"`
 	Password   string `yaml:"password"`
 	PrivateKey string `yaml:"privatekey"`
 }
@@ -86,28 +87,36 @@ func main() {
 		os.Exit(1)
 	}
 
-	proxyAddr := config.Proxy.Username + "@" + config.Proxy.Address + ":" + config.Proxy.Port
-	proxyPw := config.Proxy.Password
-	inAddr := config.InternalServer.Address + ":" + config.InternalServer.Port
+	proxyADDR := config.Proxy.Username + "@" + config.Proxy.Address + ":" + config.Proxy.Port
+	proxyPW := config.Proxy.Password
+	inADDR := config.InternalServer.Address + ":" + config.InternalServer.Port
+	authMETHOD := config.Proxy.AuthMethod
 
-	authWay := ssh.Password(proxyPw)
-	if config.Proxy.PrivateKey != "" {
-		pemPath := config.Proxy.PrivateKey
-		if !filepath.IsAbs(pemPath) {
-			if strings.HasPrefix(pemPath, "~/") || strings.HasPrefix(pemPath, "~\\") {
-				dirname, _ := os.UserHomeDir()
-				pemPath = filepath.Join(dirname, pemPath[2:])
-			}
-
-			pemPath, _ = filepath.Abs(pemPath)
-			fmt.Println("private key path:", pemPath)
+	var authWAY ssh.AuthMethod
+	switch authMETHOD {
+	case "password":
+		authWAY = ssh.Password(proxyPW)
+	case "privatekey":
+		if config.Proxy.PrivateKey == "" {
+			fmt.Println("privatekey is required")
+			os.Exit(1)
 		}
 
-		authWay = sshtunnel.PrivateKeyFile(pemPath)
-		fmt.Println("Use private key instead password")
+		pemPATH := config.Proxy.PrivateKey
+		if !filepath.IsAbs(pemPATH) {
+			if strings.HasPrefix(pemPATH, "~/") || strings.HasPrefix(pemPATH, "~\\") {
+				dirname, _ := os.UserHomeDir()
+				pemPATH = filepath.Join(dirname, pemPATH[2:])
+			}
+
+			pemPATH, _ = filepath.Abs(pemPATH)
+		}
+		authWAY = sshtunnel.PrivateKeyFile(pemPATH)
+	case "agent":
+		authWAY = sshtunnel.SSHAgent()
 	}
 
-	tunnel, err := sshtunnel.NewSSHTunnel(proxyAddr, authWay, inAddr, config.LocalPort)
+	tunnel, err := sshtunnel.NewSSHTunnel(proxyADDR, authWAY, inADDR, config.LocalPort)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
